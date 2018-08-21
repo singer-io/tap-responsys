@@ -1,10 +1,9 @@
 from voluptuous import Schema, Required, Optional
 
-CONFIG_CONTRACT = Schema([{
-    Required('table_name'): str,
-    Required('search_pattern'): str,
-    Required('key_properties'): [str],
-    Optional('search_prefix'): str,
-    Optional('date_overrides'): [str],
-    Optional('delimiter'): str
-}])
+CONFIG_CONTRACT = Schema({
+    Required('host'): str,
+    Required('username'): str,
+    Optional('password'): str,
+    Optional('private_key_file'): str,
+    Optional('port'): str
+})

@@ -10,6 +10,7 @@ setup(name='tap-responsys',
       classifiers=['Programming Language :: Python :: 3 :: Only'],
       py_modules=['tap_responsys'],
       install_requires=[
+          'paramiko==2.4.1',
           'singer-encodings==0.0.3',
           'singer-python==5.1.5',
           'voluptuous==0.10.5'
