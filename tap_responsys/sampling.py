@@ -1,4 +1,3 @@
-from io import RawIOBase
 from singer_encodings import csv
 import singer
 from tap_responsys import sftp, conversion
@@ -38,12 +37,7 @@ def sample_file(conn, table_name, filepath, sample_rate, max_records):
 
     file_handle = conn.get_file_handle(filepath)
 
-    class RawStream(RawIOBase):
-        def __init__(self, sftp_stream):
-            self._sftp_stream = sftp_stream
-            self.read = sftp_stream.read
-
-    raw_stream = RawStream(file_handle)
+    raw_stream = sftp.RawStream(file_handle)
     iterator = csv.get_row_iterator(raw_stream)
 
     current_row = 0

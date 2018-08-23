@@ -4,6 +4,7 @@ import re
 import singer
 import stat
 import time
+from io import RawIOBase
 from datetime import datetime
 
 LOGGER = singer.get_logger()
@@ -98,10 +99,14 @@ class SFTPConnection():
 
         return exported_tables
 
-    def get_files_for_table(self, prefix, table_name):
+    def get_files_for_table(self, prefix, table_name, modified_since=None):
         files = self.get_files_by_prefix(prefix)
         matcher = re.compile('(?:\d{8}_\d{6})?' + re.escape(table_name) + '\.csv$') # Match YYYYMMDD_HH24MISStablename.csv
-        return [f for f in files if matcher.search(f["filepath"])]
+        to_return = filter(lambda f: matcher.search(f["filepath"]), files)
+        if modified_since is not None:
+            to_return = filter(lambda f: f["last_modified"] >= modified_since, to_return)
+
+        return to_return
 
     def get_file_handle(self, f):
         """ Takes a file dict {"filepath": "...", "last_modified": "..."} and returns a handle to the file. """
@@ -131,3 +136,9 @@ def connection(config):
                           password=config.get('password'),
                           private_key_file=config.get('private_key_file'),
                           port=config.get('port'))
+
+class RawStream(RawIOBase):
+    """ Helper class to pass into encodings, so that Paramiko matches the types expected by base Python IO. """
+    def __init__(self, sftp_stream):
+        self._sftp_stream = sftp_stream
+        self.read = sftp_stream.read
