@@ -9,19 +9,6 @@ from datetime import datetime
 
 LOGGER = singer.get_logger()
 
-# Structure:
-# 1. We have listing files (responsibility of the source accessor? or another file that does a generic algorithm)
-# For this, we have two steps:
-#     We have prefix match (path, etc.)
-#     We have pattern match (Job_id_datetime_prefix, pattern search for s3, etc.)
-# These steps get us the files to be included in the "table"
-# 2. For Discovery, we have sampling based on the lists of files returned by the previous step
-#     - I'm going to try to wrap this up in sampling.py
-# 3. For sync, we simply return all files matched per the selection criteria, to be parsed by the singer-encodings implementation
-
-# TODO: This is pending seeing the structure of the job and external ids
-TABLE_NAME_REGEX = re.compile("\d+_\d+_(\w+)\.csv")
-
 class SFTPConnection():
     def __init__(self, host, username, password=None, private_key_file=None, port=None):
         self.host = host
@@ -70,7 +57,6 @@ class SFTPConnection():
 
         Returns a list of filepaths from the root.
         """
-        # TODO: Optional modified_since timestamp?
         files = []
         result = self.sftp.listdir_attr(prefix)
 
@@ -94,14 +80,14 @@ class SFTPConnection():
             LOGGER.warning('Found no files on specified SFTP server at "%s".', prefix)
 
         filenames = [o["filepath"].split('/')[-1] for o in files]
-        csv_matcher = re.compile('(?:\d{8}_\d{6})?(.+)\.csv$') # Match YYYYMMDD_HH24MISStablename.csv
+        csv_matcher = re.compile('(?:\d{8}_\d{6})?(.+)\.csv$') # Match YYYYMMDD_HH24MISStable_name.csv
         exported_tables = [m.group(1) for m in [csv_matcher.search(o) for o in filenames] if m]
 
         return exported_tables
 
     def get_files_for_table(self, prefix, table_name, modified_since=None):
         files = self.get_files_by_prefix(prefix)
-        matcher = re.compile('(?:\d{8}_\d{6})?' + re.escape(table_name) + '\.csv$') # Match YYYYMMDD_HH24MISStablename.csv
+        matcher = re.compile('(?:\d{8}_\d{6})?' + re.escape(table_name) + '\.csv$') # Match YYYYMMDD_HH24MISStable_name.csv
         to_return = filter(lambda f: matcher.search(f["filepath"]), files)
         if modified_since is not None:
             to_return = filter(lambda f: f["last_modified"] >= modified_since, to_return)

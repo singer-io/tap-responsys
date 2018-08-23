@@ -4,8 +4,7 @@ import singer
 
 from singer import metadata
 from tap_responsys.discover import discover_streams
-#from tap_s3_csv.s3 import get_bucket_config
-#from tap_s3_csv.sync import sync_stream
+from tap_responsys.sync import sync_stream
 from tap_responsys.config import CONFIG_CONTRACT
 
 LOGGER = singer.get_logger()
@@ -58,11 +57,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
-    # from tap_responsys import sftp
-    # import csv
-    # conn = sftp.open_connection(config)
-    # with conn.sftp.open("exports/test_file.csv", "r") as f:
-    #     reader = csv.DictReader(f)
-    #     for row in reader:
-    #         print(row)
