@@ -82,15 +82,15 @@ class SFTPConnection():
                 files.append({"filepath": prefix + '/' + file_attr.filename,
                               "last_modified": datetime.fromtimestamp(file_attr.st_mtime)})
 
-        if files:
-            LOGGER.info("Found %s files.", len(files))
-        else:
-            LOGGER.warning('Found no files on specified SFTP server at "%s".', prefix)
-
         return files
 
     def get_exported_tables(self, prefix):
         files = self.get_files_by_prefix(prefix)
+
+        if files:
+            LOGGER.info("Found %s files.", len(files))
+        else:
+            LOGGER.warning('Found no files on specified SFTP server at "%s".', prefix)
 
         filenames = [o["filepath"].split('/')[-1] for o in files]
         csv_matcher = re.compile('(?:\d{8}_\d{6})?(.+)\.csv$') # Match YYYYMMDD_HH24MISStablename.csv
