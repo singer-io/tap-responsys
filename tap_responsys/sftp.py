@@ -23,12 +23,10 @@ class SFTPConnection():
             self.transport = paramiko.Transport((self.host, self.port))
             self.transport.use_compression(True)
             self.key = None
-            if self.private_key_file:
-                key_path = os.path.expanduser(self.private_key_file)
-                self.key = paramiko.RSAKey.from_private_key_file(key_path)
-            self.creds = {'username': self.username, 'password': self.password,
-                          'hostkey': None, 'pkey': self.key}
-            self.transport.connect(**self.creds)
+            key_path = os.path.expanduser(self.private_key_file)
+            self.key = paramiko.RSAKey.from_private_key_file(key_path)
+            self.transport.start_client(timeout=1)
+            self.transport.auth_publickey(self.username, self.key)
             self.sftp = paramiko.SFTPClient.from_transport(self.transport)
             self.__active_connection = True
 
@@ -58,7 +56,10 @@ class SFTPConnection():
         Returns a list of filepaths from the root.
         """
         files = []
-        result = self.sftp.listdir_attr(prefix)
+        try:
+            result = self.sftp.listdir_attr(prefix)
+        except FileNotFoundError as e:
+            raise Exception("Directory '{}' does not exist".format(prefix)) from e
 
         is_file = lambda a: stat.S_ISREG(a.st_mode)
         for file_attr in result:
@@ -81,9 +82,15 @@ class SFTPConnection():
 
         filenames = [o["filepath"].split('/')[-1] for o in files]
         csv_matcher = re.compile('(?:\d{8}_\d{6})?(.+)\.csv$') # Match YYYYMMDD_HH24MISStable_name.csv
-        exported_tables = [m.group(1) for m in [csv_matcher.search(o) for o in filenames] if m]
+        ready_matcher = re.compile('(?:\d{8}_\d{6})?(.+)\.ready$') # Match YYYYMMDD_HH24MISStable_name.ready
+        csv_file_names = set([m.group(1) for m in
+                              [csv_matcher.search(o) for o in filenames]
+                              if m])
+        names_with_ready_files = set([m.group(1) for m in
+                                      [ready_matcher.search(o) for o in filenames]
+                                      if m])
 
-        return exported_tables
+        return csv_file_names.intersection(names_with_ready_files)
 
     def get_files_for_table(self, prefix, table_name, modified_since=None):
         files = self.get_files_by_prefix(prefix)
@@ -106,6 +113,7 @@ class SFTPConnection():
                 self.sftp.stat(ready_file)
                 is_ready = True
             except IOError:
+                LOGGER.info("No ready file found for %s, sleeping for %s seconds...", filepath, sleep_time)
                 time.sleep(sleep_time)
                 sleep_time *= 2
 

@@ -30,12 +30,12 @@ def get_sampled_schema_for_table(conn, prefix, table_name):
         'properties': merge_dicts(data_schema, metadata_schema)
     }
 
-def sample_file(conn, table_name, filepath, sample_rate, max_records):
-    LOGGER.info('Sampling %s (%s records, every %sth record).', filepath, max_records, sample_rate)
+def sample_file(conn, table_name, f, sample_rate, max_records):
+    LOGGER.info('Sampling %s (%s records, every %sth record).', f['filepath'], max_records, sample_rate)
 
     samples = []
 
-    file_handle = conn.get_file_handle(filepath)
+    file_handle = conn.get_file_handle(f)
 
     raw_stream = sftp.RawStream(file_handle)
     iterator = csv.get_row_iterator(raw_stream)
@@ -59,7 +59,7 @@ def sample_file(conn, table_name, filepath, sample_rate, max_records):
 
 # pylint: disable=too-many-arguments
 def sample_files(conn, table_name, files,
-                 sample_rate=5, max_records=1000, max_files=5):
+                 sample_rate=1, max_records=1000, max_files=5):
     to_return = []
 
     files_so_far = 0

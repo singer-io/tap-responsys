@@ -9,13 +9,11 @@ from tap_responsys.config import CONFIG_CONTRACT
 
 LOGGER = singer.get_logger()
 
-REQUIRED_CONFIG_KEYS = ["start_date"]
-
 def do_discover(config):
     LOGGER.info("Starting discover")
     streams = discover_streams(config)
     if not streams:
-        raise Exception("No streams found")
+        raise Exception("(No streams found) Streams will only be discovered if a '*.ready' file is present, to ensure consistency. Please select the option to write a file with extension 'ready' on export completion.")
     catalog = {"streams": streams}
     json.dump(catalog, sys.stdout, indent=2)
     LOGGER.info("Finished discover")
@@ -47,11 +45,11 @@ def do_sync(config, catalog, state):
 
 @singer.utils.handle_top_exception(LOGGER)
 def main():
-    args = singer.utils.parse_args(REQUIRED_CONFIG_KEYS)
-    config = args.config
+    args = singer.utils.parse_args([])
+    config = CONFIG_CONTRACT(args.config)
 
     if args.discover:
-        do_discover(args.config)
+        do_discover(config)
     elif args.properties:
         do_sync(config, args.properties, args.state)
 
