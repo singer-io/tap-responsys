@@ -1,3 +1,4 @@
+import io
 import os
 import paramiko
 import re
@@ -123,7 +124,9 @@ class SFTPConnection():
                 time.sleep(sleep_time)
                 sleep_time *= 2
 
-        return self.sftp.open(filepath, 'r')
+        # Read the whole file here and return a BytesIO object
+        # NB: If CSV files become too large, read these to disk in a tmp dir and clean them up when finished
+        return io.BytesIO(self.sftp.open(filepath, 'r').read())
 
     def get_files_matching_pattern(self, files, pattern):
         """ Takes a file dict {"filepath": "...", "last_modified": "..."} and a regex pattern string, and returns files matching that pattern. """
