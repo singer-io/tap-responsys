@@ -55,23 +55,38 @@ def sample_file(conn, table_name, f, sample_rate, max_records):
 
     LOGGER.info('Sampled %s records.', len(samples))
 
-    return samples
+    # Empty sample to show field selection, if needed
+    empty_file = False
+    if len(samples) == 0:
+        empty_file = True
+        samples.append({name: None for name in iterator.fieldnames})
+
+    return (empty_file, samples)
 
 # pylint: disable=too-many-arguments
 def sample_files(conn, table_name, files,
                  sample_rate=1, max_records=1000, max_files=5):
     to_return = []
+    empty_samples = []
 
     files_so_far = 0
 
     for f in files:
-        to_return += sample_file(conn, table_name, f,
-                                 sample_rate, max_records)
+        empty_file, samples = sample_file(conn, table_name, f,
+                                          sample_rate, max_records)
+
+        if empty_file:
+            empty_samples += samples
+        else:
+            to_return += samples
 
         files_so_far += 1
 
         if files_so_far >= max_files:
             break
+
+    if not any(to_return):
+        return empty_samples
 
     return to_return
 
