@@ -88,8 +88,11 @@ class SFTPConnection():
             LOGGER.warning('Found no files on specified SFTP server at "%s".', prefix)
 
         filenames = [o["filepath"].split('/')[-1] for o in files]
-        csv_matcher = re.compile('(?:\d{8}_\d{6})?(.+)\.csv$') # Match YYYYMMDD_HH24MISStable_name.csv
+        csv_pattern = '(?:\d{8}_\d{6})?(.+)\.csv$'
+        LOGGER.info("Searching for exported tables using files that match pattern: %s", csv_pattern)
+        csv_matcher = re.compile(csv_pattern) # Match YYYYMMDD_HH24MISStable_name.csv
         ready_matcher = re.compile('(?:\d{8}_\d{6})?(.+)\.ready$') # Match YYYYMMDD_HH24MISStable_name.ready
+
         csv_file_names = set([m.group(1) for m in
                               [csv_matcher.search(o) for o in filenames]
                               if m])
@@ -101,7 +104,9 @@ class SFTPConnection():
 
     def get_files_for_table(self, prefix, table_name, modified_since=None):
         files = self.get_files_by_prefix(prefix)
-        matcher = re.compile('(?:\d{8}_\d{6})?' + re.escape(table_name) + '\.csv$') # Match YYYYMMDD_HH24MISStable_name.csv
+        table_pattern = '(?:\d{8}_\d{6})?' + re.escape(table_name) + '\.csv$'
+        LOGGER.info("Searching for files for table '%s', matching pattern: %s", table_name, table_pattern)
+        matcher = re.compile(table_pattern) # Match YYYYMMDD_HH24MISStable_name.csv
         to_return = filter(lambda f: matcher.search(f["filepath"]), files)
         if modified_since is not None:
             to_return = filter(lambda f: f["last_modified"] >= modified_since, to_return)
