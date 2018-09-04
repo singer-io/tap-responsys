@@ -6,6 +6,7 @@ import stat
 import time
 from io import RawIOBase
 from datetime import datetime
+from paramiko.ssh_exception import AuthenticationException
 
 LOGGER = singer.get_logger()
 
@@ -25,8 +26,13 @@ class SFTPConnection():
             self.key = None
             key_path = os.path.expanduser(self.private_key_file)
             self.key = paramiko.RSAKey.from_private_key_file(key_path)
-            self.transport.start_client(timeout=1)
-            self.transport.auth_publickey(self.username, self.key)
+
+            try:
+                self.creds = {'username': self.username, 'password': None,
+                              'hostkey': None, 'pkey': self.key}
+                self.transport.connect(**self.creds)
+            except AuthenticationException as ex:
+                raise Exception("Message from SFTP server: {} - Please ensure that the server is configured to accept the public key for this integration.".format(ex)) from ex
             self.sftp = paramiko.SFTPClient.from_transport(self.transport)
             self.__active_connection = True
 
