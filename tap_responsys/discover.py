@@ -15,13 +15,10 @@ def discover_streams(config):
 
 
 def load_metadata(schema):
-# TODO: Figure out how the metadata is supposed to go.
-    return []
-#    mdata = metadata.new()
+    mdata = metadata.new()
 
-#    for field_name in schema.get('properties', {}).keys():
-#        mdata = metadata.write(mdata, ('properties', field_name), 'inclusion', 'automatic')
-#        if field_name == "RECORDNO":
-#            mdata = metadata.write(mdata, (), 'table-key-properties', "RECORDNO")
+    # Make all fields automatic
+    for field_name in schema.get('properties', {}).keys():
+        mdata = metadata.write(mdata, ('properties', field_name), 'inclusion', 'automatic')
 
-#    return metadata.to_list(mdata)
+    return metadata.to_list(mdata)
