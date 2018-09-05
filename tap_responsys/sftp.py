@@ -1,6 +1,7 @@
 import io
 import os
 import paramiko
+import pytz
 import re
 import singer
 import stat
@@ -75,7 +76,7 @@ class SFTPConnection():
                 # NB: SFTP specifies path characters to be '/'
                 #     https://tools.ietf.org/html/draft-ietf-secsh-filexfer-13#section-6
                 files.append({"filepath": prefix + '/' + file_attr.filename,
-                              "last_modified": datetime.fromtimestamp(file_attr.st_mtime)})
+                              "last_modified": datetime.utcfromtimestamp(file_attr.st_mtime).replace(tzinfo=pytz.UTC)})
 
         return files
 
@@ -107,9 +108,9 @@ class SFTPConnection():
         table_pattern = '(?:\d{8}_\d{6})?' + re.escape(table_name) + '\.csv$'
         LOGGER.info("Searching for files for table '%s', matching pattern: %s", table_name, table_pattern)
         matcher = re.compile(table_pattern) # Match YYYYMMDD_HH24MISStable_name.csv
-        to_return = filter(lambda f: matcher.search(f["filepath"]), files)
+        to_return = [f for f in files if matcher.search(f["filepath"])]
         if modified_since is not None:
-            to_return = filter(lambda f: f["last_modified"] >= modified_since, to_return)
+            to_return = [f for f in to_return if f["last_modified"] >= modified_since]
 
         return to_return
 

@@ -8,14 +8,14 @@ LOGGER = singer.get_logger()
 
 def sync_stream(config, state, stream):
     table_name = stream['tap_stream_id']
-    modified_since = utils.strptime_with_tz(singer.get_bookmark(state, table_name, 'modified_since') or
-                                            config['start_date'])
+    modified_since = utils.strptime_to_utc(singer.get_bookmark(state, table_name, 'modified_since') or
+                                           config['start_date'])
 
     LOGGER.info('Syncing table "%s".', table_name)
     LOGGER.info('Getting files modified since %s.', modified_since)
 
     conn = sftp.connection(config)
-    files = sftp.get_files_for_table(conn, table_name, modified_since)
+    files = conn.get_files_for_table(config["path"], table_name, modified_since)
 
     LOGGER.info('Found %s files to be synced.', len(files))
 
@@ -25,7 +25,6 @@ def sync_stream(config, state, stream):
 
     for f in files:
         records_streamed += sync_table_file(conn, f, stream)
-
         state = singer.write_bookmark(state, table_name, 'modified_since', f['last_modified'].isoformat())
         singer.write_state(state)
 

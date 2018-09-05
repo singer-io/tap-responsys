@@ -28,17 +28,17 @@ def do_sync(config, catalog, state):
     for stream in catalog['streams']:
         stream_name = stream['tap_stream_id']
         mdata = metadata.to_map(stream['metadata'])
-        table_spec = next(s for s in config['tables'] if s['table_name'] == stream_name)
+
         if not stream_is_selected(mdata):
             LOGGER.info("%s: Skipping - not selected", stream_name)
             continue
 
         singer.write_state(state)
-        key_properties = metadata.get(mdata, (), 'table-key-properties')
-        singer.write_schema(stream_name, stream['schema'], key_properties)
+        key_properties = [] # No primary keys for now
+        singer.write_schema(stream_name, stream['schema'], [])
 
         LOGGER.info("%s: Starting sync", stream_name)
-        counter_value = sync_stream(config, state, table_spec, stream)
+        counter_value = sync_stream(config, state, stream)
         LOGGER.info("%s: Completed sync (%s rows)", stream_name, counter_value)
 
     LOGGER.info('Done syncing.')
