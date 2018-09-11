@@ -80,6 +80,9 @@ class SFTPConnection():
 
         return files
 
+    re_datetime = '(?:\d{4}-?\d\d-?\d\d_?(?:\d\d)?-?(?:\d\d)?-?(?:\d\d)?)'
+    re_table_name = '(.+?)'
+    re_file_extension = '(?:csv|txt)'
     def get_exported_tables(self, prefix):
         files = self.get_files_by_prefix(prefix)
 
@@ -89,10 +92,10 @@ class SFTPConnection():
             LOGGER.warning('Found no files on specified SFTP server at "%s".', prefix)
 
         filenames = [o["filepath"].split('/')[-1] for o in files]
-        csv_pattern = '(?:\d{8}_\d{6})?(.+)\.csv$'
+        csv_pattern = '{0}?{1}{0}?\.{2}$'.format(re_datetime, re_table_name, re_file_extension)
         LOGGER.info("Searching for exported tables using files that match pattern: %s", csv_pattern)
         csv_matcher = re.compile(csv_pattern) # Match YYYYMMDD_HH24MISStable_name.csv
-        ready_matcher = re.compile('(?:\d{8}_\d{6})?(.+)\.ready$') # Match YYYYMMDD_HH24MISStable_name.ready
+        ready_matcher = re.compile('{0}?{1}{0}?\.?{2}?\.ready$'.format(self.re_datetime, self.re_table_name, self.re_file_extension)) # Match YYYYMMDD_HH24MISStable_name.ready
 
         csv_file_names = set([m.group(1) for m in
                               [csv_matcher.search(o) for o in filenames]
@@ -105,7 +108,7 @@ class SFTPConnection():
 
     def get_files_for_table(self, prefix, table_name, modified_since=None):
         files = self.get_files_by_prefix(prefix)
-        table_pattern = '(?:\d{8}_\d{6})?' + re.escape(table_name) + '\.csv$'
+        table_pattern = '{0}?{1}{0}?\.{2}$'.format(self.re_datetime, re.escape(table_name), self.re_file_extension)
         LOGGER.info("Searching for files for table '%s', matching pattern: %s", table_name, table_pattern)
         matcher = re.compile(table_pattern) # Match YYYYMMDD_HH24MISStable_name.csv
         to_return = [f for f in files if matcher.search(f["filepath"])]
@@ -119,13 +122,18 @@ class SFTPConnection():
         is_ready = True # False
         sleep_time = 1 # Start at 1 second, exponentially backoff
         filepath = f["filepath"]
-        ready_file = re.sub('\.csv$', '.ready', filepath)
+        ready_files = [re.sub('\.{}$'.format(self.re_file_extension), '.ready', filepath),
+                       filepath + '.ready'] # Check for all possibilities of ready files.
 
         while not is_ready:
-            try:
-                self.sftp.stat(ready_file)
-                is_ready = True
-            except IOError:
+            for possible_file in ready_files:
+                try:
+                    self.sftp.stat(possible_file)
+                    is_ready = True
+                except IOError:
+                    pass
+
+            if not is_ready:
                 LOGGER.info("No ready file found for %s, sleeping for %s seconds...", filepath, sleep_time)
                 time.sleep(sleep_time)
                 sleep_time *= 2
