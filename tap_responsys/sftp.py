@@ -12,6 +12,40 @@ from paramiko.ssh_exception import AuthenticationException
 
 LOGGER = singer.get_logger()
 
+class FileMatcher():
+    re_datetime = '(?:\d{4}-?\d\d-?\d\d_?(?:\d\d)?-?(?:\d\d)?-?(?:\d\d)?)'
+    re_table_name = '(.+?)'
+    re_file_extension = '(?:\.(?:csv|txt))'
+
+    def match_available_tables(self, filenames):
+        """
+        Match table names with optional date/time prefix or suffix, .txt or .csv extension, with
+        ready files that may or may not also include the file extension preceding the .ready extension.
+        """
+        csv_pattern = '{0}?{1}{0}?{2}$'.format(self.re_datetime, self.re_table_name, self.re_file_extension)
+
+        LOGGER.info("Searching for exported tables using files that match pattern: %s", csv_pattern)
+        csv_matcher = re.compile(csv_pattern)
+        ready_matcher = re.compile('{0}?{1}{0}?{2}?\.ready$'.format(self.re_datetime, self.re_table_name, self.re_file_extension))
+
+        csv_file_names = set([m.group(1) for m in
+                              [csv_matcher.search(o) for o in filenames]
+                              if m])
+        names_with_ready_files = set([m.group(1) for m in
+                                      [ready_matcher.search(o) for o in filenames]
+                                      if m])
+
+        return csv_file_names.intersection(names_with_ready_files)
+
+    def match_files_for_table(self, files, table_name):
+        table_pattern = '^{0}?{1}{0}?{2}$'.format(self.re_datetime, re.escape(table_name), self.re_file_extension)
+        LOGGER.info("Searching for files for table '%s', matching pattern: %s", table_name, table_pattern)
+        matcher = re.compile(table_pattern) # Match YYYYMMDD_HH24MISStable_name.csv
+        return [f for f in files if matcher.search(f["filepath"])]
+
+    def replace_file_extension(self, filepath):
+        return re.sub('{}$'.format(self.re_file_extension), '.ready', filepath)
+
 class SFTPConnection():
     def __init__(self, host, username, password=None, private_key_file=None, port=None):
         self.host = host
@@ -20,6 +54,7 @@ class SFTPConnection():
         self.port = port or 22
         self.private_key_file = private_key_file
         self.__active_connection = False
+        self.regex = FileMatcher()
 
     def __ensure_connection(self):
         if not self.__active_connection:
@@ -80,9 +115,6 @@ class SFTPConnection():
 
         return files
 
-    re_datetime = '(?:\d{4}-?\d\d-?\d\d_?(?:\d\d)?-?(?:\d\d)?-?(?:\d\d)?)'
-    re_table_name = '(.+?)'
-    re_file_extension = '(?:csv|txt)'
     def get_exported_tables(self, prefix):
         files = self.get_files_by_prefix(prefix)
 
@@ -92,26 +124,11 @@ class SFTPConnection():
             LOGGER.warning('Found no files on specified SFTP server at "%s".', prefix)
 
         filenames = [o["filepath"].split('/')[-1] for o in files]
-        csv_pattern = '{0}?{1}{0}?\.{2}$'.format(re_datetime, re_table_name, re_file_extension)
-        LOGGER.info("Searching for exported tables using files that match pattern: %s", csv_pattern)
-        csv_matcher = re.compile(csv_pattern) # Match YYYYMMDD_HH24MISStable_name.csv
-        ready_matcher = re.compile('{0}?{1}{0}?\.?{2}?\.ready$'.format(self.re_datetime, self.re_table_name, self.re_file_extension)) # Match YYYYMMDD_HH24MISStable_name.ready
-
-        csv_file_names = set([m.group(1) for m in
-                              [csv_matcher.search(o) for o in filenames]
-                              if m])
-        names_with_ready_files = set([m.group(1) for m in
-                                      [ready_matcher.search(o) for o in filenames]
-                                      if m])
-
-        return csv_file_names.intersection(names_with_ready_files)
+        return self.regex.match_available_tables(filenames)
 
     def get_files_for_table(self, prefix, table_name, modified_since=None):
         files = self.get_files_by_prefix(prefix)
-        table_pattern = '{0}?{1}{0}?\.{2}$'.format(self.re_datetime, re.escape(table_name), self.re_file_extension)
-        LOGGER.info("Searching for files for table '%s', matching pattern: %s", table_name, table_pattern)
-        matcher = re.compile(table_pattern) # Match YYYYMMDD_HH24MISStable_name.csv
-        to_return = [f for f in files if matcher.search(f["filepath"])]
+        to_return = self.regex.match_available_tables(files, table_name)
         if modified_since is not None:
             to_return = [f for f in to_return if f["last_modified"] >= modified_since]
 
@@ -122,7 +139,7 @@ class SFTPConnection():
         is_ready = True # False
         sleep_time = 1 # Start at 1 second, exponentially backoff
         filepath = f["filepath"]
-        ready_files = [re.sub('\.{}$'.format(self.re_file_extension), '.ready', filepath),
+        ready_files = [self.regex.replace_file_extension(filepath),
                        filepath + '.ready'] # Check for all possibilities of ready files.
 
         while not is_ready:
