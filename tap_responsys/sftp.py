@@ -22,11 +22,11 @@ class FileMatcher():
         Match table names with optional date/time prefix or suffix, .txt or .csv extension, with
         ready files that may or may not also include the file extension preceding the .ready extension.
         """
-        csv_pattern = '{0}?{1}{0}?{2}$'.format(self.re_datetime, self.re_table_name, self.re_file_extension)
+        csv_pattern = '{0}?[-_]?{1}[-_]?{0}?{2}$'.format(self.re_datetime, self.re_table_name, self.re_file_extension)
 
         LOGGER.info("Searching for exported tables using files that match pattern: %s", csv_pattern)
         csv_matcher = re.compile(csv_pattern)
-        ready_matcher = re.compile('{0}?{1}{0}?{2}?\.ready$'.format(self.re_datetime, self.re_table_name, self.re_file_extension))
+        ready_matcher = re.compile('{0}?[-_]?{1}[-_]?{0}?{2}?\.ready$'.format(self.re_datetime, self.re_table_name, self.re_file_extension))
 
         csv_file_names = set([m.group(1) for m in
                               [csv_matcher.search(o) for o in filenames]
@@ -38,7 +38,7 @@ class FileMatcher():
         return csv_file_names.intersection(names_with_ready_files)
 
     def match_files_for_table(self, files, table_name):
-        table_pattern = '^{0}?{1}{0}?{2}$'.format(self.re_datetime, re.escape(table_name), self.re_file_extension)
+        table_pattern = '{0}?[-_]?{1}[-_]?{0}?{2}$'.format(self.re_datetime, re.escape(table_name), self.re_file_extension)
         LOGGER.info("Searching for files for table '%s', matching pattern: %s", table_name, table_pattern)
         matcher = re.compile(table_pattern) # Match YYYYMMDD_HH24MISStable_name.csv
         return [f for f in files if matcher.search(f["filepath"])]
@@ -128,7 +128,7 @@ class SFTPConnection():
 
     def get_files_for_table(self, prefix, table_name, modified_since=None):
         files = self.get_files_by_prefix(prefix)
-        to_return = self.regex.match_available_tables(files, table_name)
+        to_return = self.regex.match_files_for_table(files, table_name)
         if modified_since is not None:
             to_return = [f for f in to_return if f["last_modified"] >= modified_since]
 
