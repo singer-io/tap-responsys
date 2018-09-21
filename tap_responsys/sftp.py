@@ -104,10 +104,13 @@ class SFTPConnection():
         except FileNotFoundError as e:
             raise Exception("Directory '{}' does not exist".format(prefix)) from e
 
+        is_empty = lambda a: a.st_size == 0
         is_file = lambda a: stat.S_ISREG(a.st_mode)
         for file_attr in result:
-            # NB: This only looks at the immediate level
+            # NB: This only looks at the immediate level beneath the prefix directory
             if is_file(file_attr):
+                if is_empty(file_attr):
+                    continue
                 # NB: SFTP specifies path characters to be '/'
                 #     https://tools.ietf.org/html/draft-ietf-secsh-filexfer-13#section-6
                 files.append({"filepath": prefix + '/' + file_attr.filename,
