@@ -31,7 +31,8 @@ def get_sampled_schema_for_table(conn, prefix, table_name):
     }
 
 def sample_file(conn, table_name, f, sample_rate, max_records):
-    LOGGER.info('Sampling %s (%s records, every %sth record).', f['filepath'], max_records, sample_rate)
+    plurality = "s" if sample_rate != 1 else ""
+    LOGGER.info('Sampling %s (%s records, every %s record%s).', f['filepath'], max_records, sample_rate, plurality)
 
     samples = []
 
