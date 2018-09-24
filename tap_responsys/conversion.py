@@ -1,11 +1,8 @@
 import re
 import singer
-import dateutil
+import dateutil.parser
 
 LOGGER = singer.get_logger()
-
-date_regex = re.compile(r"^\d{4}-[01]?\d-[0-3]?\d$")
-datetime_regex = re.compile(r"^\d{4}-[01]\d-[0-3]\dT\d{2}\:\d{2}\:\d{2}Z$")
 
 def infer(datum):
     """
@@ -27,8 +24,11 @@ def infer(datum):
     except (ValueError, TypeError):
         pass
 
-    if date_regex.search(datum) or datetime_regex.search(datum):
+    try:
+        dateutil.parser.parse(datum)
         return 'date-time'
+    except (ValueError, TypeError):
+        pass
 
     return 'string'
 
