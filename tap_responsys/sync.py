@@ -7,7 +7,7 @@ from tap_responsys import sftp
 LOGGER = singer.get_logger()
 
 def sync_stream(config, state, stream):
-    table_name = stream['tap_stream_id']
+    table_name = stream.tap_stream_id
     modified_since = utils.strptime_to_utc(singer.get_bookmark(state, table_name, 'modified_since') or
                                            config['start_date'])
 
@@ -35,7 +35,7 @@ def sync_stream(config, state, stream):
 def sync_table_file(conn, f, stream):
     LOGGER.info('Syncing file "%s".', f["filepath"])
 
-    table_name = stream['tap_stream_id']
+    table_name = stream.tap_stream_id
 
     file_handle = conn.get_file_handle(f)
     raw_stream = sftp.RawStream(file_handle)
@@ -53,7 +53,7 @@ def sync_table_file(conn, f, stream):
         rec = {**row, **custom_columns}
 
         with Transformer() as transformer:
-            to_write = transformer.transform(rec, stream['schema'], metadata.to_map(stream['metadata']))
+            to_write = transformer.transform(rec, stream.schema.to_dict(), metadata.to_map(stream.metadata))
 
         singer.write_record(table_name, to_write)
         records_synced += 1

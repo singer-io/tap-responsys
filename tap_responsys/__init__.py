@@ -25,17 +25,17 @@ def stream_is_selected(mdata):
 def do_sync(config, catalog, state):
     LOGGER.info('Starting sync.')
 
-    for stream in catalog['streams']:
-        stream_name = stream['tap_stream_id']
-        mdata = metadata.to_map(stream['metadata'])
+    for stream in catalog.streams:
+        stream_name = stream.tap_stream_id
+        mdata = metadata.to_map(stream.metadata)
 
         if not stream_is_selected(mdata):
             LOGGER.info("%s: Skipping - not selected", stream_name)
             continue
 
         singer.write_state(state)
-        key_properties = [] # No primary keys for now
-        singer.write_schema(stream_name, stream['schema'], [])
+        key_properties = metadata.get(metadata.to_map(stream.metadata), (), "table-key-properties")
+        singer.write_schema(stream_name, stream.schema.to_dict(), key_properties)
 
         LOGGER.info("%s: Starting sync", stream_name)
         counter_value = sync_stream(config, state, stream)
@@ -51,7 +51,7 @@ def main():
     if args.discover:
         do_discover(config)
     elif args.properties:
-        do_sync(config, args.properties, args.state)
+        do_sync(config, args.catalog, args.state)
 
 if __name__ == '__main__':
     main()

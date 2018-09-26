@@ -17,6 +17,9 @@ def discover_streams(config):
 def load_metadata(schema):
     mdata = metadata.new()
 
+    key_properties = [sampling.SDC_SOURCE_FILE_COLUMN, sampling.SDC_SOURCE_LINENO_COLUMN]
+    mdata = metadata.write(mdata, (), 'table-key-properties', key_properties)
+
     # Make all fields automatic
     for field_name in schema.get('properties', {}).keys():
         mdata = metadata.write(mdata, ('properties', field_name), 'inclusion', 'automatic')
