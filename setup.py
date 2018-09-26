@@ -3,7 +3,7 @@
 from setuptools import setup
 
 setup(name='tap-responsys',
-      version='0.0.1',
+      version='0.0.2',
       description='Singer.io tap for extracting CSV files from Responsys via FTP',
       author='Stitch',
       url='https://singer.io',
