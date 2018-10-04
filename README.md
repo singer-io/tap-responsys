@@ -52,10 +52,18 @@ In order to handle the wealth of options available for exports in Responsys Conn
 
 5. Run the application
 
-    `tap-responsys` can be run with:
+    **Discovery mode**
 
     ```bash
-    tap-responsys --config config.json [--state state.json]
+    tap-responsys --config config.json --discover > catalog.json
+    ```
+
+    **Sync Mode**
+
+    You only need to add `"selected": true` metadata to the stream level in the catalog, since fields are selected automatically. Once that is done, you can run sync mode using this command, with optional state from a previous run:
+
+    ```bash
+    tap-responsys --config config.json --catalog catalog.json [--state state.json]
     ```
 
 ---
