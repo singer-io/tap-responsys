@@ -133,7 +133,7 @@ class SFTPConnection():
         files = self.get_files_by_prefix(prefix)
         to_return = self.regex.match_files_for_table(files, table_name)
         if modified_since is not None:
-            to_return = [f for f in to_return if f["last_modified"] >= modified_since]
+            to_return = [f for f in to_return if f["last_modified"] > modified_since]
 
         return to_return
 
