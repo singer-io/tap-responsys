@@ -31,6 +31,7 @@ In order to handle the wealth of options available for exports in Responsys Conn
     The tap will need to use an SSH public/private keypair to connect to the SFTP server. In order for this to work, the server needs to trust the public key.
     
     **If using the hosted Responsys SFTP Server**: You can work with Responsys to get the public key uploaded and trusted on the server. 
+    
     **If using a custom SFTP server**: Consult with the administrator of that server to upload and trust the SSH public key file.
 
 
