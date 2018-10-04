@@ -40,14 +40,14 @@ In order to handle the wealth of options available for exports in Responsys Conn
     Create a JSON file called `config.json` containing the local path to the private key file, and server information.
 
     ```json
-{
-  "private_key_file": "~/.ssh/my_key",
-  "username": "test_scp",
-  "start_date": "2017-09-21T00:00:00Z",
-  "path": "exports",
-  "host": "files.responsys.net",
-  "port": "22"
-}
+    {
+      "private_key_file": "~/.ssh/responsys_rsa",
+      "username": "test_scp",
+      "start_date": "2017-09-21T00:00:00Z",
+      "path": "exports",
+      "host": "files.responsys.net",
+      "port": "22"
+    }
     ```
 
 5. Run the application
