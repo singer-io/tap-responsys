@@ -14,7 +14,8 @@ setup(name='tap-responsys',
           'singer-encodings==0.0.3',
           'singer-python==5.1.5',
           'voluptuous==0.10.5',
-          'pytz==2018.4'
+          'pytz==2018.4',
+          'backoff==1.3.2'
       ],
       entry_points='''
           [console_scripts]
