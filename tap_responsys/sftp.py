@@ -60,7 +60,7 @@ class SFTPConnection():
     def handle_backoff(details):
         LOGGER.warn("SSH Connection closed unexpectedly. Waiting {wait} seconds and retrying...".format(**details))
 
-    # If commection is snapped during connect, retry up to a
+    # If connection is snapped during connect flow, retry up to a
     # minute for SSH connection to succeed. 2^6 + 2^5 + ...
     @backoff.on_exception(backoff.expo,
                           (EOFError),
