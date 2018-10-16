@@ -1,5 +1,6 @@
 import io
 import os
+import backoff
 import paramiko
 import pytz
 import re
@@ -56,6 +57,20 @@ class SFTPConnection():
         self.__active_connection = False
         self.regex = FileMatcher()
 
+    def handle_backoff(details):
+        LOGGER.warn("SSH Connection closed unexpectedly. Waiting {wait} seconds and retrying...".format(**details))
+
+    # If connection is snapped during connect flow, retry up to a
+    # minute for SSH connection to succeed. 2^6 + 2^5 + ...
+    @backoff.on_exception(backoff.expo,
+                          (EOFError),
+                          max_tries=6,
+                          on_backoff=handle_backoff,
+                          jitter=None,
+                          factor=2)
+    def __try_connect(self):
+        self.transport.connect(**self.creds)
+
     def __ensure_connection(self):
         if not self.__active_connection:
             self.transport = paramiko.Transport((self.host, self.port))
@@ -63,11 +78,11 @@ class SFTPConnection():
             self.key = None
             key_path = os.path.expanduser(self.private_key_file)
             self.key = paramiko.RSAKey.from_private_key_file(key_path)
+            self.creds = {'username': self.username, 'password': None,
+                          'hostkey': None, 'pkey': self.key}
 
             try:
-                self.creds = {'username': self.username, 'password': None,
-                              'hostkey': None, 'pkey': self.key}
-                self.transport.connect(**self.creds)
+                self.__try_connect()
             except AuthenticationException as ex:
                 raise Exception("Message from SFTP server: {} - Please ensure that the server is configured to accept the public key for this integration.".format(ex)) from ex
             self.sftp = paramiko.SFTPClient.from_transport(self.transport)
