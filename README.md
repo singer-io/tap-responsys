@@ -68,4 +68,4 @@ In order to handle the wealth of options available for exports in Responsys Conn
 
 ---
 
-Copyright &copy; 2018 Stitch
+Copyright &copy; 2019 Stitch
