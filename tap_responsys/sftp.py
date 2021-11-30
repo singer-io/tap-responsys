@@ -75,6 +75,7 @@ class SFTPConnection():
         if not self.__active_connection:
             self.transport = paramiko.Transport((self.host, self.port))
             self.transport.use_compression(True)
+            self.transport.set_keepalive(30) # seconds
             self.key = None
             key_path = os.path.expanduser(self.private_key_file)
             self.key = paramiko.RSAKey.from_private_key_file(key_path)
