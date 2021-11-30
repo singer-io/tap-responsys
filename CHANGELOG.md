@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.1.0
+  * Turn on parimiko's Keep-Alive functionality so connections don't snap [#5](https://github.com/singer-io/tap-responsys/pull/5)
+
 ## 1.0.0
   * Releasing an open beta
 
